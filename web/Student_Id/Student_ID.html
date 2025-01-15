@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student ID Card</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      width: 700px;
+      height: 350px;
+      background-color: #ffffff;
+      border: 2px solid #012f67;
+      border-radius: 8px;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Top Header Section */
+    .card-header {
+      width: 100%;
+      height: 50px;
+      background-color: #012f67;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      box-sizing: border-box;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .card-header img {
+      height: 40px;
+    }
+
+    .card-header h1 {
+      font-size: 14px;
+      text-transform: uppercase;
+      margin: 0;
+      font-weight: bold;
+    }
+
+    /* Left Side Section */
+    .card-left {
+      width: 30%;
+      background-color: #e9edf5;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 2px solid #012f67;
+    }
+
+    .card-left img {
+      width: 120px;
+      height: auto;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    /* Right Side Section */
+    .card-right {
+      width: 70%;
+      padding: 20px 20px 10px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    .card-right h2 {
+      font-size: 16px;
+      color: #012f67;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .card-right p {
+      font-size: 14px;
+      margin: 5px 0;
+      line-height: 1.4;
+    }
+
+    .card-right .info-section {
+      margin-bottom: 20px;
+    }
+
+    .card-right .rib {
+      font-size: 12px;
+      color: #333;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Header Section -->
+    <div class="card-header">
+      <img src="Uemf_logo.png" alt="UEMF Logo">
+      <h1>CARTE D'ÉTUDIANT<br>STUDENT ID</h1>
+    </div>
+
+    <!-- Left Section -->
+    <div class="card-left">
+      <img src="student_photo.png" alt="Student Photo">
+      <h3 style="font-size: 14px; text-align: center;">Student's Full Name</h3>
+    </div>
+
+    <!-- Right Section -->
+    <div class="card-right">
+      <h2>Establishment</h2>
+      <p><strong>École:</strong> d'Ingénierie Digitale et d'Intelligence Artificielle</p>
+      <p><strong>Registration Number:</strong> 2200410</p>
+      <p class="rib"><strong>Personal Bank Details (RIB):</strong> 225270978161100220041029</p>
+    </div>
+  </div>
+</body>
+</html>
