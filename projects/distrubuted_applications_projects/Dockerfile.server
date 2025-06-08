@@ -1,19 +1,25 @@
 # Dockerfile for Chat Server with X11 forwarding
-FROM openjdk:17-jdk-slim
+FROM openjdk:24-jdk-slim
+
 
 # Descriptive labels
 LABEL maintainer="ChatApp Team"
 LABEL description="Chat Server Application with GUI"
 LABEL version="1.0"
 
-# Install X11 libraries for GUI support
-RUN apt-get update && apt-get install -y \
-    libx11-6 \
-    libxext6 \
-    libxrender1 \
-    libxtst6 \
-    libxi6 \
-    fontconfig \
+# install ALL of the native X11 libs Swing/AWT depends on
+RUN apt-get update && \
+    apt-get install -y \
+      libx11-6 \
+      libxext6 \
+      libxrender1 \
+      libxtst6 \
+      libxi6 \
+      libxt6 \
+      libsm6 \
+      libice6 \
+      libfreetype6 \
+      libfontconfig1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user (non-root for security)
@@ -23,7 +29,7 @@ RUN useradd -m -s /bin/bash appuser
 WORKDIR /app
 
 # Copy compiled Java files
-COPY ChatServer.class ChatProtocol.class /app/
+COPY *.class /app/
 
 # Create empty users.txt file
 RUN touch /app/users.txt && chown appuser:appuser /app/users.txt

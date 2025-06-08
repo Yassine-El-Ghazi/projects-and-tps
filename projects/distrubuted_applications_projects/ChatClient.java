@@ -86,7 +86,7 @@ public class ChatClient {
         frame.setVisible(true);
     }
 
-    // Creates a rounded “bubble” for each message
+    // Creates a rounded "bubble" for each message
     private JPanel createBubble(String sender, String text, boolean isSelf) {
         String time = new SimpleDateFormat("HH:mm").format(new Date());
         Color bgColor = isSelf ? new Color(39, 174, 96) : new Color(44, 62, 80);
@@ -179,6 +179,11 @@ public class ChatClient {
             null, options, options[0]
         );
 
+        // If user closes the dialog, return null
+        if (choice == -1) {
+            return null;
+        }
+
         JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
         panel.add(new JLabel("Username:"));
         JTextField userField = new JTextField();
@@ -193,7 +198,7 @@ public class ChatClient {
         if (result == JOptionPane.OK_OPTION) {
             return new String[] {
                 options[choice],
-                userField.getText(),
+                userField.getText().trim(),
                 new String(passField.getPassword())
             };
         }
@@ -203,42 +208,105 @@ public class ChatClient {
     // Main client flow: connect, login/register, then start reading lines
     public void runClient() throws IOException {
         String serverAddress = JOptionPane.showInputDialog(frame, "Enter server IP:", "localhost");
-        if (serverAddress == null) {
+        if (serverAddress == null || serverAddress.trim().isEmpty()) {
             System.exit(0);
         }
-        Socket socket = new Socket(serverAddress, 12345);
+        
+        serverAddress = serverAddress.trim();
+        System.out.println("Attempting to connect to: " + serverAddress);
+        
+        Socket socket = null;
+        try {
+            socket = new Socket(serverAddress, 12345);
+            System.out.println("Connected successfully to " + serverAddress + ":12345");
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, 
+                "Failed to connect to server: " + serverAddress + ":12345\n" + 
+                "Error: " + e.getMessage(), 
+                "Connection Error", 
+                JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
+        
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         out = new PrintWriter(socket.getOutputStream(), true);
 
-        // Authentication loop
-        while (true) {
-            String serverMsg = in.readLine();
-            if (serverMsg == null) {
+        // Authentication loop with timeout and better error handling
+        boolean authenticated = false;
+        int timeoutCounter = 0;
+        final int MAX_TIMEOUT = 10; // 10 second timeout
+        
+        while (!authenticated && timeoutCounter < MAX_TIMEOUT) {
+            try {
+                // Check if there's data available to read
+                if (in.ready() || timeoutCounter == 0) {
+                    String serverMsg = in.readLine();
+                    System.out.println("Received from server: " + serverMsg);
+                    
+                    if (serverMsg == null) {
+                        JOptionPane.showMessageDialog(frame, "Server disconnected unexpectedly", "Connection Error", JOptionPane.ERROR_MESSAGE);
+                        socket.close();
+                        return;
+                    }
+                    
+                    if (serverMsg.startsWith("SUBMITOPTION")) {
+                        System.out.println("Server requesting login/register credentials");
+                        String[] cred = showLoginRegisterDialog();
+                        if (cred == null) {
+                            socket.close();
+                            return;
+                        }
+                        
+                        System.out.println("User chose: " + cred[0] + " with username: " + cred[1]);
+                        
+                        if (cred[0].equals("Login")) {
+                            username = cred[1];
+                            out.println("LOGIN " + cred[1] + " " + cred[2]);
+                            System.out.println("Sent LOGIN command");
+                        } else {
+                            out.println("REGISTER " + cred[1] + " " + cred[2]);
+                            System.out.println("Sent REGISTER command");
+                        }
+                        timeoutCounter = 0; // Reset timeout after sending credentials
+                    } else if (serverMsg.startsWith("LOGINSUCCESS")) {
+                        System.out.println("Login successful!");
+                        addMessageBubble("SERVER", "Logged in successfully");
+                        authenticated = true;
+                    } else if (serverMsg.startsWith("LOGINFAIL")) {
+                        System.out.println("Login failed");
+                        JOptionPane.showMessageDialog(frame, "Login failed. Please check your credentials.", "Login Error", JOptionPane.ERROR_MESSAGE);
+                    } else if (serverMsg.startsWith("REGISTERSUCCESS")) {
+                        System.out.println("Registration successful");
+                        JOptionPane.showMessageDialog(frame, "Registration successful. Please log in.");
+                    } else if (serverMsg.startsWith("REGISTERFAIL")) {
+                        System.out.println("Registration failed");
+                        JOptionPane.showMessageDialog(frame, "Registration failed: user already exists.");
+                    } else if (serverMsg.startsWith("ERROR")) {
+                        System.out.println("Server error: " + serverMsg);
+                        JOptionPane.showMessageDialog(frame, "Server error: " + serverMsg, "Server Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        System.out.println("Unexpected message from server: " + serverMsg);
+                    }
+                } else {
+                    // Wait a bit and increment timeout counter
+                    Thread.sleep(1000);
+                    timeoutCounter++;
+                    System.out.println("Waiting for server response... (" + timeoutCounter + "/" + MAX_TIMEOUT + ")");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(frame, "Communication error with server: " + e.getMessage(), "Communication Error", JOptionPane.ERROR_MESSAGE);
                 socket.close();
                 return;
             }
-            if (serverMsg.startsWith("SUBMITOPTION")) {
-                String[] cred = showLoginRegisterDialog();
-                if (cred == null) {
-                    socket.close();
-                    return;
-                }
-                if (cred[0].equals("Login")) {
-                    username = cred[1];
-                    out.println("LOGIN " + cred[1] + " " + cred[2]);
-                } else {
-                    out.println("REGISTER " + cred[1] + " " + cred[2]);
-                }
-            } else if (serverMsg.startsWith("LOGINSUCCESS")) {
-                addMessageBubble("SERVER", "Logged in successfully");
-                break;
-            } else if (serverMsg.startsWith("LOGINFAIL")) {
-                JOptionPane.showMessageDialog(frame, "Login failed");
-            } else if (serverMsg.startsWith("REGISTERSUCCESS")) {
-                JOptionPane.showMessageDialog(frame, "Registration successful. Please log in.");
-            } else if (serverMsg.startsWith("REGISTERFAIL")) {
-                JOptionPane.showMessageDialog(frame, "Registration failed: user exists.");
-            }
+        }
+        
+        if (!authenticated) {
+            JOptionPane.showMessageDialog(frame, "Authentication timeout. Server may not be responding.", "Timeout Error", JOptionPane.ERROR_MESSAGE);
+            socket.close();
+            return;
         }
 
         // Start reader thread for any "MESSAGE ..." lines (history + new)
@@ -246,6 +314,8 @@ public class ChatClient {
             try {
                 String line;
                 while ((line = in.readLine()) != null) {
+                    System.out.println("Received message: " + line);
+                    
                     if (line.startsWith("MESSAGE")) {
                         String msg = line.substring(8);
 
@@ -270,14 +340,14 @@ public class ChatClient {
                         if (msg.startsWith("SERVER: ") && msg.contains(" has joined")) {
                             String user = msg.substring("SERVER: ".length(), msg.indexOf(" has joined"));
                             if (!user.equals(username)) {
-                                userListModel.addElement(user);
+                                SwingUtilities.invokeLater(() -> userListModel.addElement(user));
                             }
                             addMessageBubble("SERVER", msg.substring("SERVER: ".length()));
                         }
                         else if (msg.startsWith("SERVER: ") && msg.contains(" has left")) {
                             String user = msg.substring("SERVER: ".length(), msg.indexOf(" has left"));
                             if (!user.equals(username)) {
-                                userListModel.removeElement(user);
+                                SwingUtilities.invokeLater(() -> userListModel.removeElement(user));
                             }
                             addMessageBubble("SERVER", msg.substring("SERVER: ".length()));
                         }
@@ -297,14 +367,17 @@ public class ChatClient {
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("Error reading from server: " + e.getMessage());
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(frame, "Lost connection to server", "Connection Lost", JOptionPane.WARNING_MESSAGE);
+                });
             }
         }).start();
     }
 
     public static void main(String[] args) throws Exception {
+        System.out.println("Starting Chat Client...");
         ChatClient client = new ChatClient();
         client.runClient();
     }
 }
-
