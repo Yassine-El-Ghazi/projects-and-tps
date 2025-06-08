@@ -1,0 +1,27 @@
+# Dockerfile for Chat Server
+# Official Java base image
+FROM openjdk:11-jre-slim
+
+# Descriptive labels
+LABEL maintainer="ChatApp Team"
+LABEL description="Chat Server Application"
+LABEL version="1.0"
+
+# Create working directory
+WORKDIR /app
+
+# Copy compiled Java files
+COPY ChatServer.class /app/
+COPY ChatProtocol.class /app/
+
+# Create empty users.txt file (will be mounted as volume)
+RUN touch /app/users.txt
+
+# Expose server port
+EXPOSE 12345
+
+# Environment variables
+ENV JAVA_OPTS="-Xmx256m -Xms128m"
+
+# Entry point to launch the server
+CMD ["java", "-cp", "/app", "ChatServer"]
