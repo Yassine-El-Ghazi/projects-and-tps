@@ -1,280 +1,435 @@
-# Chat Application Docker Deployment
+# Distributed Chat Application
 
-This project provides Docker containerization for a Java-based chat application with separate server and client components.
+A multi-user chat application built with Java Swing and Socket programming, featuring a GUI-based server and client with Docker containerization and X11 forwarding support.
 
-## 📋 Project Structure
+## 🚀 Features
 
+### Server Features
+- **Multi-user Support**: Handles multiple concurrent client connections
+- **User Authentication**: Secure login and registration system with SHA-256 password hashing
+- **Chat History**: Persistent message history for new users joining
+- **Real-time Broadcasting**: Instant message delivery to all connected clients
+- **Admin Controls**: Server-side message broadcasting capability
+- **GUI Interface**: Modern dark-themed server interface with online user list and chat log
+- **Persistent Storage**: User credentials stored in encrypted format
+
+### Client Features
+- **Modern GUI**: Dark-themed chat interface with message bubbles
+- **Real-time Messaging**: Instant message sending and receiving
+- **User Presence**: Live online user list
+- **Message Notifications**: Pop-up notifications for new messages (with smart suppression during history loading)
+- **Responsive Design**: Smooth scrolling and auto-scroll to latest messages
+- **Connection Management**: Automatic server connection with IP configuration
+
+### Technical Features
+- **Docker Support**: Fully containerized application with separate server and client images
+- **X11 Forwarding**: GUI applications running in Docker containers
+- **Network Isolation**: Dedicated Docker network for secure communication
+- **Automated Deployment**: Complete build and deployment scripts
+- **Health Checks**: Container health monitoring
+- **Scalability**: Support for multiple client instances
+
+## 📋 Requirements
+
+### System Requirements
+- **Operating System**: Linux (Ubuntu 18.04+, Fedora 30+, or similar)
+- **Java**: OpenJDK 11 or higher
+- **Docker**: Version 20.10 or higher
+- **Display Server**: X11 (for GUI applications)
+- **Memory**: At least 512MB RAM
+- **Storage**: 100MB free space
+
+### Software Dependencies
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install openjdk-11-jdk docker.io x11-xserver-utils
+
+# Fedora/RHEL
+sudo dnf install java-11-openjdk-devel docker xorg-x11-server-utils
+
+# Arch Linux
+sudo pacman -S jdk11-openjdk docker xorg-xhost
 ```
-├── ChatServer.java          # Server application source
-├── ChatClient.java          # Client application source  
-├── ChatProtocol.java        # Common protocol interface
-├── Dockerfile.server        # Server Docker image
-├── Dockerfile.client        # Client Docker image
-├── docker-compose.yml       # Docker Compose configuration
-├── build.sh                # Automated build script
-├── deploy.sh               # Deployment script
-├── test.sh                 # Testing script
-└── README.md               # This documentation
+
+## 🛠️ Installation
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd distributed-chat-application
 ```
 
-## 🚀 Quick Start
+### 2. Set Up X11 Forwarding
+```bash
+# Run the X11 setup script
+chmod +x test.sh
+./test.sh auto
 
-### Prerequisites
-- Docker installed and running
-- Java 11+ for compilation
-- Network access for Docker Hub
+# Or run interactive setup
+./test.sh
+```
 
-### 1. Build the Application
-
+### 3. Build the Application
 ```bash
 # Make scripts executable
-chmod +x build.sh deploy.sh test.sh
+chmod +x build.sh deploy.sh
 
 # Build Docker images
 ./build.sh
 ```
 
-### 2. Deploy the Application
+## 🚀 Quick Start
 
+### Method 1: Using Deployment Script (Recommended)
+
+#### Start the Server
 ```bash
-# Start the server
 ./deploy.sh start-server
+```
 
-# Start a client (in another terminal)
+#### Start Client(s)
+```bash
 ./deploy.sh start-client
 ```
 
-### 3. Test the Deployment
-
+### Method 2: Using Docker Compose
 ```bash
-# Run validation tests
-./test.sh
+# Start server
+docker-compose up chat-server
+
+# Start client (in another terminal)
+docker-compose --profile client up chat-client
 ```
 
-## 🐳 Docker Images
-
-### Server Image (`chat-server:latest`)
-- **Base**: `openjdk:11-jre-slim`
-- **Port**: 12345
-- **Features**:
-  - Lightweight JRE-only image
-  - Persistent data volume support
-  - Health check integration
-  - Configurable memory settings
-
-### Client Image (`chat-client:latest`)
-- **Base**: `openjdk:11-jre-slim`
-- **Features**:
-  - GUI support with X11
-  - Virtual display (Xvfb)
-  - Window manager (Fluxbox)
-  - Network connectivity to server
-
-## 📖 Usage Guide
-
-### Manual Docker Commands
-
-#### Start Server
+### Method 3: Manual Docker Commands
 ```bash
 # Create network
 docker network create chat-network
 
-# Create data volume
-docker volume create chat-data
+# Start server
+docker run -d --name chat-server \
+    --network chat-network \
+    -p 12345:12345 \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    chat-server:latest
 
-# Run server
-docker run -d \
-  --name chat-server \
-  --network chat-network \
-  -p 12345:12345 \
-  -v chat-data:/app/data \
-  chat-server:latest
+# Start client
+docker run -d --name chat-client \
+    --network chat-network \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    chat-client:latest
 ```
 
-#### Start Client
-```bash
-# Run client
-docker run -d \
-  --name chat-client-1 \
-  --network chat-network \
-  -e DISPLAY=:99 \
-  chat-client:latest
-```
+## 📖 Usage Guide
 
-### Using Docker Compose
+### First Time Setup
 
-```bash
-# Start server only
-docker-compose up -d chat-server
+1. **Start the Server**: Run `./deploy.sh start-server`
+   - Server GUI will appear showing online users and chat log
+   - Server listens on port 12345
 
-# Start server and client
-docker-compose --profile client up -d
-```
+2. **Start a Client**: Run `./deploy.sh start-client`
+   - Client GUI will appear
+   - Enter server IP (use `chat-server` for Docker network, or `localhost` for local)
 
-### Using Deployment Scripts
+3. **Create Account**: 
+   - Choose "Register" to create a new account
+   - Enter username and password
+   - Login with your credentials
 
-```bash
-# Available commands
-./deploy.sh help
+4. **Start Chatting**:
+   - Type messages in the input field
+   - Press Enter or click Send
+   - View online users in the left panel
+   - Messages appear as bubbles in the chat area
 
-# Start components
-./deploy.sh start-server
-./deploy.sh start-client
+### Server Administration
 
-# Monitor
-./deploy.sh status
-./deploy.sh logs-server
-./deploy.sh logs-client
+The server provides admin controls:
+- **Broadcast Messages**: Type in the server's input field to send messages as "SERVER"
+- **Monitor Users**: View all online users in the left panel
+- **View Chat Log**: All messages appear in the server's chat log
+- **User Management**: Monitor user registrations and logins
 
-# Stop everything
-./deploy.sh stop
+### Client Features
 
-# Complete cleanup
-./deploy.sh cleanup
-```
+- **Message Bubbles**: Your messages appear on the right (green), others on the left (blue)
+- **Timestamps**: Each message shows the time it was sent
+- **Notifications**: Pop-up notifications for new messages (except during history loading)
+- **Auto-scroll**: Chat automatically scrolls to show latest messages
+- **Online Users**: Left panel shows all currently connected users
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Server Configuration
+- **Port**: Default 12345 (configurable in `ChatServer.java`)
+- **User File**: `users.txt` (stores encrypted user credentials)
+- **Memory**: 256MB max, 128MB initial (configurable in Docker)
 
-#### Server Container
-- `JAVA_OPTS`: JVM options (default: `-Xmx256m -Xms128m`)
+### Client Configuration
+- **Server Address**: Prompted on startup
+- **Display**: Inherits from host system
+- **Memory**: Default JVM settings
 
-#### Client Container
-- `DISPLAY`: X11 display (default: `:99`)
+### Docker Configuration
+- **Network**: `chat-network` (bridge mode)
+- **Volumes**: `chat-data` for persistent storage
+- **Restart Policy**: `unless-stopped`
 
-### Volumes
+## 🐳 Docker Commands Reference
 
-- `chat-data`: Persistent storage for user data and chat history
-- Mount point: `/app/data`
-
-### Networks
-
-- `chat-network`: Bridge network for inter-container communication
-
-## 🧪 Testing
-
-The test script validates:
-- Docker availability
-- Image existence and sizes
-- Container startup
-- Network connectivity
-- Volume operations
-- Docker Compose configuration
-
+### Container Management
 ```bash
-./test.sh
+# View status
+./deploy.sh status
+
+# Stop all containers
+./deploy.sh stop
+
+# View server logs
+./deploy.sh logs-server
+
+# View client logs
+./deploy.sh logs-client
+
+# Cleanup everything
+./deploy.sh cleanup
 ```
 
-## 📊 Monitoring
-
-### Check Container Status
+### Manual Docker Operations
 ```bash
-docker ps --filter "name=chat-"
-```
+# List running containers
+docker ps --filter "name=chat-*"
 
-### View Logs
-```bash
-# Server logs
+# View logs
 docker logs -f chat-server
+docker logs -f chat-client-123456
 
-# Client logs  
-docker logs -f chat-client-1
+# Execute commands in container
+docker exec -it chat-server bash
+
+# Remove containers
+docker rm -f chat-server chat-client-123456
 ```
 
-### Resource Usage
-```bash
-docker stats chat-server chat-client-1
-```
-
-## 🛠️ Troubleshooting
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-#### Port Already in Use
+#### GUI Not Appearing
 ```bash
-# Find process using port 12345
-lsof -i :12345
+# Check DISPLAY variable
+echo $DISPLAY
 
-# Change port mapping
-docker run -p 12346:12345 chat-server:latest
+# Setup X11 permissions
+xhost +local:docker
+
+# Test X11 forwarding
+./test.sh
 ```
 
-#### Client GUI Issues
+#### Connection Issues
 ```bash
-# Check X11 setup
-docker exec -it chat-client-1 ps aux | grep Xvfb
+# Check if server is running
+docker ps --filter "name=chat-server"
 
-# Restart client with new display
-docker run -e DISPLAY=:100 chat-client:latest
+# Check server logs
+docker logs chat-server
+
+# Test network connectivity
+docker exec chat-client ping chat-server
 ```
 
-#### Network Connectivity
+#### Permission Errors
 ```bash
-# Test network
-docker network inspect chat-network
+# Fix X11 permissions
+xhost +local:docker
 
-# Recreate network
+# Check Docker permissions
+sudo usermod -aG docker $USER
+# Logout and login again
+```
+
+### Wayland Users (Ubuntu 22.04+)
+```bash
+# Switch to X11 session at login screen
+# Or set environment variable
+export DISPLAY=:0
+
+# Install Xwayland
+sudo apt-get install xwayland
+```
+
+### Network Issues
+```bash
+# Recreate Docker network
 docker network rm chat-network
 docker network create chat-network
+
+# Check firewall
+sudo ufw allow 12345
 ```
 
-#### Volume Permissions
+## 📁 File Structure
+
+```
+distributed-chat-application/
+├── src/
+│   ├── ChatServer.java          # Server application
+│   ├── ChatClient.java          # Client application
+│   └── ChatProtocol.java        # Communication interface
+├── docker/
+│   ├── Dockerfile.server        # Server container definition
+│   ├── Dockerfile.client        # Client container definition
+│   └── docker-compose.yml       # Multi-container setup
+├── scripts/
+│   ├── build.sh                 # Build automation
+│   ├── deploy.sh                # Deployment automation
+│   └── test.sh                  # X11 setup and testing
+├── data/
+│   └── users.txt                # User credentials (auto-generated)
+└── README.md                    # This file
+```
+
+## 🔒 Security Features
+
+### Password Security
+- **SHA-256 Hashing**: All passwords are hashed before storage
+- **No Plain Text**: Passwords never stored in plain text
+- **Secure Transmission**: Credentials sent over established socket connections
+
+### Container Security
+- **Non-root User**: Applications run as non-privileged user
+- **Network Isolation**: Containers communicate through dedicated network
+- **Resource Limits**: Memory and CPU limits prevent resource exhaustion
+
+### Network Security
+- **Port Binding**: Only necessary ports exposed
+- **Local Network**: Docker network isolates application traffic
+- **Connection Validation**: All client connections validated
+
+## 🧪 Testing
+
+### Unit Testing
 ```bash
-# Check volume
-docker volume inspect chat-data
-
-# Fix permissions
-docker run --rm -v chat-data:/data alpine chown -R 1000:1000 /data
+# Compile and run basic tests
+javac *.java
+java ChatServer &
+java ChatClient
 ```
 
-### Cleanup Commands
-
+### Integration Testing
 ```bash
-# Remove all chat containers
-docker rm -f $(docker ps -aq --filter "name=chat-")
+# Test X11 forwarding
+./test.sh
 
-# Remove images
-docker rmi chat-server:latest chat-client:latest
+# Test Docker build
+./build.sh
 
-# Remove volumes
-docker volume rm chat-data
-
-# Remove network
-docker network rm chat-network
+# Test deployment
+./deploy.sh start-server
+./deploy.sh start-client
 ```
 
-## 🔒 Security Considerations
+### Load Testing
+```bash
+# Start multiple clients
+for i in {1..5}; do
+    ./deploy.sh start-client &
+done
+```
 
-- Server runs as non-root user
-- Minimal base images used
-- No unnecessary packages installed
-- Network isolation with custom bridge
-- Volume permissions properly configured
+## 🚀 Deployment Options
 
-## 📈 Performance Optimization
+### Development Environment
+```bash
+# Quick development setup
+javac *.java
+java ChatServer &
+java ChatClient
+```
 
-- JVM memory limits configured
-- Image layers optimized
-- Health checks implemented
-- Restart policies configured
-- Resource constraints can be added
+### Production Environment
+```bash
+# Build and deploy with Docker
+./build.sh
+./deploy.sh start-server
+./deploy.sh start-client
+```
+
+### Cloud Deployment
+```bash
+# Build images
+docker build -f Dockerfile.server -t your-registry/chat-server .
+docker build -f Dockerfile.client -t your-registry/chat-client .
+
+# Push to registry
+docker push your-registry/chat-server
+docker push your-registry/chat-client
+```
 
 ## 🤝 Contributing
 
+### Development Setup
 1. Fork the repository
-2. Create feature branch
-3. Test with `./test.sh`
-4. Submit pull request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+### Code Style
+- Follow Java naming conventions
+- Use meaningful variable names
+- Add comments for complex logic
+- Maintain consistent indentation
+
+### Testing Guidelines
+- Test GUI functionality manually
+- Verify Docker builds work
+- Test on multiple Linux distributions
+- Check X11 forwarding on different desktop environments
 
 ## 📄 License
 
-This project is provided as-is for educational use. Modify and extend freely.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 📞 Support
+## 🆘 Support
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Review container logs
-3. Run the test script
-4. Create an issue with full error details
+### Getting Help
+- Check the troubleshooting section above
+- Review Docker and X11 setup guides
+- Open an issue for bugs or feature requests
+
+### Reporting Issues
+When reporting issues, please include:
+- Operating system and version
+- Docker version
+- Desktop environment (GNOME, KDE, etc.)
+- Error messages and logs
+- Steps to reproduce
+
+### Feature Requests
+We welcome feature requests! Please describe:
+- The desired functionality
+- Use case scenarios
+- Implementation suggestions
+
+## 📚 Additional Resources
+
+### Documentation
+- [Docker Documentation](https://docs.docker.com/)
+- [Java Swing Tutorial](https://docs.oracle.com/javase/tutorial/uiswing/)
+- [X11 Forwarding Guide](https://wiki.archlinux.org/title/X11_forwarding)
+
+### Related Projects
+- Socket Programming in Java
+- GUI Development with Swing
+- Docker Container Orchestration
+- Network Programming Patterns
+
+---
+
+**Distributed Chat Application** - A modern, containerized chat solution with GUI support.
