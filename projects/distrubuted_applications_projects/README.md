@@ -1,206 +1,280 @@
-# Docker Chat Application Project
+# Chat Application Docker Deployment
 
-## Overview
-This project containerizes a Java chat application using Docker. The application consists of a chat server and client that allows multiple users to communicate in real-time.
+This project provides Docker containerization for a Java-based chat application with separate server and client components.
 
-## Project Structure
+## 📋 Project Structure
+
 ```
-chat-docker/
-├── Dockerfile           # Docker image definition
-├── docker-compose.yml   # Docker Compose configuration
-├── build.sh            # Build script
-├── deploy.sh           # Deployment script
-├── ChatServer.java     # Chat server code
-├── ChatClient.java     # Chat client code
-├── ChatProtocol.java   # Protocol interface
-└── data/               # Persistent data directory
+├── ChatServer.java          # Server application source
+├── ChatClient.java          # Client application source  
+├── ChatProtocol.java        # Common protocol interface
+├── Dockerfile.server        # Server Docker image
+├── Dockerfile.client        # Client Docker image
+├── docker-compose.yml       # Docker Compose configuration
+├── build.sh                # Automated build script
+├── deploy.sh               # Deployment script
+├── test.sh                 # Testing script
+└── README.md               # This documentation
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- Docker installed
-- Java 11+ (for compilation)
+- Docker installed and running
+- Java 11+ for compilation
+- Network access for Docker Hub
 
-### Build and Run
-1. **Make scripts executable:**
-   ```bash
-   chmod +x build.sh deploy.sh
-   ```
+### 1. Build the Application
 
-2. **Build the application:**
-   ```bash
-   ./build.sh
-   ```
-
-3. **Run the application:**
-   ```bash
-   ./deploy.sh start
-   ```
-
-The chat server will be available on `localhost:12345`.
-
-## Usage Commands
-
-### Build Script
 ```bash
-./build.sh                # Complete build process
+# Make scripts executable
+chmod +x build.sh deploy.sh test.sh
+
+# Build Docker images
+./build.sh
 ```
 
-### Deployment Script
+### 2. Deploy the Application
+
 ```bash
-./deploy.sh start         # Start the application
-./deploy.sh stop          # Stop the application
-./deploy.sh restart       # Restart the application
-./deploy.sh status        # Show status
-./deploy.sh logs          # Show logs
+# Start the server
+./deploy.sh start-server
+
+# Start a client (in another terminal)
+./deploy.sh start-client
 ```
 
-### Docker Commands
+### 3. Test the Deployment
+
 ```bash
-# Build image manually
-docker build -t chatapp .
+# Run validation tests
+./test.sh
+```
 
-# Run container manually
-docker run -d --name chatapp-server -p 12345:12345 -v $(pwd)/data:/app/data chatapp
+## 🐳 Docker Images
 
-# View logs
-docker logs chatapp-server
+### Server Image (`chat-server:latest`)
+- **Base**: `openjdk:11-jre-slim`
+- **Port**: 12345
+- **Features**:
+  - Lightweight JRE-only image
+  - Persistent data volume support
+  - Health check integration
+  - Configurable memory settings
 
-# Stop container
-docker stop chatapp-server
+### Client Image (`chat-client:latest`)
+- **Base**: `openjdk:11-jre-slim`
+- **Features**:
+  - GUI support with X11
+  - Virtual display (Xvfb)
+  - Window manager (Fluxbox)
+  - Network connectivity to server
+
+## 📖 Usage Guide
+
+### Manual Docker Commands
+
+#### Start Server
+```bash
+# Create network
+docker network create chat-network
+
+# Create data volume
+docker volume create chat-data
+
+# Run server
+docker run -d \
+  --name chat-server \
+  --network chat-network \
+  -p 12345:12345 \
+  -v chat-data:/app/data \
+  chat-server:latest
+```
+
+#### Start Client
+```bash
+# Run client
+docker run -d \
+  --name chat-client-1 \
+  --network chat-network \
+  -e DISPLAY=:99 \
+  chat-client:latest
 ```
 
 ### Using Docker Compose
+
 ```bash
-docker-compose up -d      # Start in background
-docker-compose logs       # View logs
-docker-compose down       # Stop and remove
+# Start server only
+docker-compose up -d chat-server
+
+# Start server and client
+docker-compose --profile client up -d
 ```
 
-## Application Details
+### Using Deployment Scripts
 
-### Server
-- Runs on port 12345
-- Handles user authentication (login/register)
-- Manages chat rooms and message broadcasting
-- Stores user data in `/app/data/users.txt`
+```bash
+# Available commands
+./deploy.sh help
 
-### Client
-- Connects to server on specified IP and port
-- Provides GUI for chat interface
-- Supports user registration and login
+# Start components
+./deploy.sh start-server
+./deploy.sh start-client
 
-### Data Persistence
-- User data is stored in `./data/` directory
-- This directory is mounted as a Docker volume
-- Data persists between container restarts
+# Monitor
+./deploy.sh status
+./deploy.sh logs-server
+./deploy.sh logs-client
 
-## Configuration
+# Stop everything
+./deploy.sh stop
+
+# Complete cleanup
+./deploy.sh cleanup
+```
+
+## 🔧 Configuration
 
 ### Environment Variables
-- `PORT`: Server port (default: 12345)
-- `JAVA_OPTS`: JVM options
+
+#### Server Container
+- `JAVA_OPTS`: JVM options (default: `-Xmx256m -Xms128m`)
+
+#### Client Container
+- `DISPLAY`: X11 display (default: `:99`)
 
 ### Volumes
-- `./data:/app/data`: User data persistence
 
-### Ports
-- `12345`: Chat server port
+- `chat-data`: Persistent storage for user data and chat history
+- Mount point: `/app/data`
 
-## Testing
+### Networks
 
-### Basic Tests
-1. **Container starts successfully:**
-   ```bash
-   docker ps | grep chatapp-server
-   ```
+- `chat-network`: Bridge network for inter-container communication
 
-2. **Port is accessible:**
-   ```bash
-   telnet localhost 12345
-   ```
+## 🧪 Testing
 
-3. **Data persistence:**
-   ```bash
-   ls -la data/
-   ```
+The test script validates:
+- Docker availability
+- Image existence and sizes
+- Container startup
+- Network connectivity
+- Volume operations
+- Docker Compose configuration
 
-### Manual Testing
-1. Start the server using `./deploy.sh start`
-2. Compile and run the client: `java ChatClient`
-3. Register a new user
-4. Send messages
-5. Check that user data persists after restart
+```bash
+./test.sh
+```
 
-## Troubleshooting
+## 📊 Monitoring
+
+### Check Container Status
+```bash
+docker ps --filter "name=chat-"
+```
+
+### View Logs
+```bash
+# Server logs
+docker logs -f chat-server
+
+# Client logs  
+docker logs -f chat-client-1
+```
+
+### Resource Usage
+```bash
+docker stats chat-server chat-client-1
+```
+
+## 🛠️ Troubleshooting
 
 ### Common Issues
 
-1. **Port already in use:**
-   ```bash
-   netstat -tulpn | grep 12345
-   # Kill the process using the port
-   ```
-
-2. **Permission denied:**
-   ```bash
-   chmod +x *.sh
-   ```
-
-3. **Container won't start:**
-   ```bash
-   docker logs chatapp-server
-   ```
-
-4. **Java compilation errors:**
-   ```bash
-   javac -version  # Check Java version
-   javac *.java    # Compile manually
-   ```
-
-### Cleanup
+#### Port Already in Use
 ```bash
-# Stop and remove container
-docker stop chatapp-server
-docker rm chatapp-server
+# Find process using port 12345
+lsof -i :12345
 
-# Remove image
-docker rmi chatapp
-
-# Clean up Docker system
-docker system prune
+# Change port mapping
+docker run -p 12346:12345 chat-server:latest
 ```
 
-## Docker Best Practices Implemented
+#### Client GUI Issues
+```bash
+# Check X11 setup
+docker exec -it chat-client-1 ps aux | grep Xvfb
 
-1. **Official base image**: Using `openjdk:11-jre`
-2. **Minimal layers**: Combining related commands
-3. **Port exposure**: Properly exposing port 12345
-4. **Volume mounting**: For data persistence
-5. **Descriptive labels**: Image metadata
-6. **Working directory**: Clean file organization
+# Restart client with new display
+docker run -e DISPLAY=:100 chat-client:latest
+```
 
-## Development Workflow
+#### Network Connectivity
+```bash
+# Test network
+docker network inspect chat-network
 
-1. **Modify code**: Edit Java source files
-2. **Rebuild**: Run `./build.sh`
-3. **Test**: Run `./deploy.sh restart`
-4. **Verify**: Check logs with `./deploy.sh logs`
+# Recreate network
+docker network rm chat-network
+docker network create chat-network
+```
 
-## Production Considerations
+#### Volume Permissions
+```bash
+# Check volume
+docker volume inspect chat-data
 
-- Use specific image tags instead of `latest`
-- Implement health checks
-- Configure resource limits
-- Set up proper logging
-- Use secrets for sensitive data
-- Implement backup strategies
+# Fix permissions
+docker run --rm -v chat-data:/data alpine chown -R 1000:1000 /data
+```
 
-## Support
+### Cleanup Commands
 
-For issues or questions:
-1. Check the logs: `./deploy.sh logs`
-2. Verify container status: `./deploy.sh status`
-3. Review Docker documentation
-4. Check Java application logs in the data directory
+```bash
+# Remove all chat containers
+docker rm -f $(docker ps -aq --filter "name=chat-")
+
+# Remove images
+docker rmi chat-server:latest chat-client:latest
+
+# Remove volumes
+docker volume rm chat-data
+
+# Remove network
+docker network rm chat-network
+```
+
+## 🔒 Security Considerations
+
+- Server runs as non-root user
+- Minimal base images used
+- No unnecessary packages installed
+- Network isolation with custom bridge
+- Volume permissions properly configured
+
+## 📈 Performance Optimization
+
+- JVM memory limits configured
+- Image layers optimized
+- Health checks implemented
+- Restart policies configured
+- Resource constraints can be added
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch
+3. Test with `./test.sh`
+4. Submit pull request
+
+## 📄 License
+
+This project is provided as-is for educational use. Modify and extend freely.
+
+## 📞 Support
+
+For issues and questions:
+1. Check the troubleshooting section
+2. Review container logs
+3. Run the test script
+4. Create an issue with full error details
