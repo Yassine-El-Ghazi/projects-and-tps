@@ -1,81 +1,68 @@
 #!/bin/bash
 
-# Simple build script for Chat App Docker
-echo "===== Building Chat App ====="
+# Automated build script for Chat Application
+echo "=== Build Script for Chat Application ==="
 
-# Variables
-IMAGE_NAME="chatapp"
-CONTAINER_NAME="chatapp-server"
-PORT="12345"
+# Colors for display
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Function to print messages
-print_message() {
-    echo "[INFO] $1"
+# Function to display messages
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
 }
 
-# Step 1: Compile Java files
-print_message "Compiling Java files..."
-if [ ! -f "ChatServer.java" ]; then
-    echo "[ERROR] ChatServer.java not found!"
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+    log_error "Docker is not installed or not available in PATH"
     exit 1
 fi
 
-javac *.java
-if [ $? -eq 0 ]; then
-    print_message "Java compilation successful"
+# Compile Java files
+log_info "Compiling Java files..."
+if javac ChatProtocol.java ChatServer.java ChatClient.java; then
+    log_info "Compilation successful"
 else
-    echo "[ERROR] Java compilation failed"
+    log_error "Error during compilation"
     exit 1
 fi
 
-# Step 2: Build Docker image
-print_message "Building Docker image..."
-docker build -t $IMAGE_NAME .
-if [ $? -eq 0 ]; then
-    print_message "Docker image built successfully"
+# Build server Docker image
+log_info "Building Docker image for server..."
+if docker build -f Dockerfile.server -t chat-server:latest .; then
+    log_info "Server image created successfully"
 else
-    echo "[ERROR] Docker build failed"
+    log_error "Error creating server image"
     exit 1
 fi
 
-# Step 3: Test the image
-print_message "Testing Docker image..."
-if docker images | grep -q $IMAGE_NAME; then
-    print_message "Docker image test passed"
+# Build client Docker image
+log_info "Building Docker image for client..."
+if docker build -f Dockerfile.client -t chat-client:latest .; then
+    log_info "Client image created successfully"
 else
-    echo "[ERROR] Docker image not found"
+    log_error "Error creating client image"
     exit 1
 fi
 
-# Step 4: Ask if user wants to run the application
-read -p "Do you want to run the application now? (y/n): " choice
-if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-    # Stop existing container if running
-    docker stop $CONTAINER_NAME 2>/dev/null || true
-    docker rm $CONTAINER_NAME 2>/dev/null || true
-    
-    # Create data directory
-    mkdir -p data
-    
-    # Run the container
-    print_message "Starting application container..."
-    docker run -d \
-        --name $CONTAINER_NAME \
-        -p $PORT:$PORT \
-        -v $(pwd)/data:/app/data \
-        $IMAGE_NAME
-    
-    if [ $? -eq 0 ]; then
-        print_message "Application started successfully!"
-        print_message "Server is running on port $PORT"
-        print_message "Data will be saved in ./data directory"
-        print_message ""
-        print_message "To stop: docker stop $CONTAINER_NAME"
-        print_message "To view logs: docker logs $CONTAINER_NAME"
-    else
-        echo "[ERROR] Failed to start application"
-        exit 1
-    fi
-fi
+# Create Docker network
+log_info "Creating Docker network..."
+docker network create chat-network 2>/dev/null || log_warn "Network already exists"
 
-print_message "Build process completed!"
+# Display created images
+log_info "Created Docker images:"
+docker images | grep -E "(chat-server|chat-client)"
+
+echo
+log_info "Build completed successfully!"
+log_info "Use './deploy.sh' to deploy the application"
