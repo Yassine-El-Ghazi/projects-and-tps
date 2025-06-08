@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  chatapp:
+    build: .
+    container_name: chatapp-server
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
