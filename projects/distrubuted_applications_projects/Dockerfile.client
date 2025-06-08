@@ -1,0 +1,36 @@
+# Dockerfile for Chat Client
+# Official Java base image with GUI support
+FROM openjdk:11-jre-slim
+
+# Descriptive labels
+LABEL maintainer="ChatApp Team"
+LABEL description="Chat Client Application"
+LABEL version="1.0"
+
+# Install packages needed for GUI
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    x11vnc \
+    fluxbox \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /app
+
+# Copy compiled Java files
+COPY ChatClient.class /app/
+COPY ChatProtocol.class /app/
+
+# Environment variables for X11
+ENV DISPLAY=:99
+
+# Script to start X11 and the application
+RUN echo '#!/bin/bash\n\
+Xvfb :99 -screen 0 1024x768x24 &\n\
+fluxbox &\n\
+java -cp /app ChatClient\n' > /app/start-client.sh
+
+RUN chmod +x /app/start-client.sh
+
+# Entry point to launch the client
+CMD ["/app/start-client.sh"]
