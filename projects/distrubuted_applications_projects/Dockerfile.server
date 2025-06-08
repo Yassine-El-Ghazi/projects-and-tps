@@ -1,5 +1,5 @@
 # Dockerfile for Chat Server with X11 forwarding
-FROM openjdk:11-jre-slim
+FROM openjdk:20-jre
 
 # Descriptive labels
 LABEL maintainer="ChatApp Team"
