@@ -56,8 +56,18 @@ sudo pacman -S jdk11-openjdk docker xorg-xhost
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
-cd distributed-chat-application
+# 1. Clone with no working files
+git clone --no-checkout https://github.com/Yassine-El-Ghazi/projects-and-tps.git
+cd projects-and-tps
+
+# 2. Turn on sparse-checkout in cone mode
+git sparse-checkout init --cone
+
+# 3. Specify the one subdirectory you want
+git sparse-checkout set projects/distrubuted_applications_projects
+
+# 4. Check out your branch (e.g. main)
+git checkout main
 ```
 
 ### 2. Set Up X11 Forwarding
