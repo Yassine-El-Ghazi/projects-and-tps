@@ -7,6 +7,8 @@ import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
+import javax.net.ssl.*;
+import java.security.KeyStore;
 
 public class ChatServer extends JFrame {
     private static final int PORT = 12345;
@@ -121,19 +123,31 @@ public class ChatServer extends JFrame {
     }
 
     private void startServer() {
-        new Thread(() -> {
-            try {
-                ServerSocket listener = new ServerSocket(PORT);
-                appendLog("Server started on port " + PORT);
-                while (true) {
-                    Socket socket = listener.accept();
-                    new ClientHandler(socket).start();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    new Thread(() -> {
+        try {
+            // SSL Setup
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(new FileInputStream("server.keystore"), "chatpass".toCharArray());
+            
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+            keyManagerFactory.init(keyStore, "chatpass".toCharArray());
+            
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+            
+            SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
+            SSLServerSocket listener = (SSLServerSocket) factory.createServerSocket(PORT);
+            
+            appendLog("SSL Server started on port " + PORT);
+            while (true) {
+                Socket socket = listener.accept();
+                new ClientHandler(socket).start();
             }
-        }).start();
-    }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }).start();
+}
 
     private void broadcast(String message) {
         for (PrintWriter writer : clientWriters) {
@@ -245,4 +259,3 @@ public class ChatServer extends JFrame {
         new ChatServer();
     }
 }
-
