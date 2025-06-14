@@ -30,6 +30,7 @@ WORKDIR /app
 
 # Copy compiled Java files
 COPY *.class /app/
+COPY server.keystore /app/
 
 # Create empty users.txt file
 RUN touch /app/users.txt && chown appuser:appuser /app/users.txt
