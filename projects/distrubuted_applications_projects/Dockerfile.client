@@ -29,6 +29,7 @@ WORKDIR /app
 
 # Copy compiled Java files
 COPY *.class /app/
+COPY server.keystore /app/
 
 # Change ownership of the app directory
 RUN chown -R appuser:appuser /app
